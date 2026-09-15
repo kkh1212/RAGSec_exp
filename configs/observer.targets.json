@@ -1,0 +1,8 @@
+{
+  "refusal_recall": 0.90,
+  "answer_precision": 0.95,
+  "max_uncertain_rate": 0.20,
+  "min_samples": 100,
+  "min_class_support": 20,
+  "min_query_groups": 20
+}
