@@ -112,7 +112,11 @@ class TransferIndex:
 
         self._data = root / "data"
         self._expanded = expanded
-        self._index = faiss.read_index(str(self._data / "clean.index"))
+        # faiss.read_index는 Windows에서 한글 등 비ASCII 경로를 열지 못한다.
+        # 파일을 파이썬으로 읽어 메모리에서 역직렬화하면 경로와 무관하게 같은 인덱스가 된다.
+        import numpy as np
+
+        self._index = faiss.deserialize_index(np.fromfile(self._data / "clean.index", dtype=np.uint8))
         self._clean_count = self._index.ntotal
         clean_ids = _load_ids(self._data / "clean_ids.json")
         if len(clean_ids) != self._clean_count:
