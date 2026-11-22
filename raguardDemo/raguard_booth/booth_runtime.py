@@ -618,6 +618,14 @@ PAPER_RAG_PROMPT = (
 TRANSFER_TOP_K = 5
 BACKFILL_POOL = int(os.getenv("BOOTH_BACKFILL_POOL", "10"))  # 6~15위를 백필 후보로
 
+# 생성 백엔드: ollama(로컬) 또는 openai(런팟 서버리스 vLLM 등 OpenAI 호환 엔드포인트)
+#   BOOTH_LLM_BACKEND=openai
+#   BOOTH_OPENAI_BASE_URL=https://api.runpod.ai/v2/<ENDPOINT_ID>/openai/v1
+#   BOOTH_OPENAI_API_KEY=<RunPod API key>   (없으면 RUNPOD_API_KEY)
+#   BOOTH_MODEL=<엔드포인트의 모델 이름>      (예: meta-llama/Meta-Llama-3-8B-Instruct)
+OPENAI_TIMEOUT = float(os.getenv("BOOTH_OPENAI_TIMEOUT", "120"))
+OPENAI_WARMUP_TIMEOUT = float(os.getenv("BOOTH_OPENAI_WARMUP_TIMEOUT", "600"))  # 콜드 스타트(모델 로딩) 대비
+
 
 class TransferRuntime(_ComparisonRuntime):
     """NQ 전달 인덱스용. 논문 A1 조건(영어 템플릿, greedy, 160토큰)과 맞추고 탐지 시 청크 DROP."""
@@ -634,11 +642,61 @@ class TransferRuntime(_ComparisonRuntime):
         self._guard = None
         self._pool: list[Chunk] = []
         self._pool_ids: dict[str, str] = {}
+        self._backend = (os.getenv("BOOTH_LLM_BACKEND", "ollama").strip().lower() or "ollama")
+        if self._backend == "openai":
+            self._think = None
+            self._openai_base = os.getenv("BOOTH_OPENAI_BASE_URL", "").strip().rstrip("/")
+            self._openai_key = (os.getenv("BOOTH_OPENAI_API_KEY") or os.getenv("RUNPOD_API_KEY") or "").strip()
+            if not self._openai_base or not self._openai_key:
+                raise ValueError("BOOTH_OPENAI_BASE_URL and BOOTH_OPENAI_API_KEY are required for the openai backend")
+
+    def _openai_chat(self, prompt: str, max_tokens: int, timeout: float) -> tuple[dict, float]:
+        """OpenAI 호환 chat completions. 시스템 프롬프트 없이 user 메시지 하나 (chat template은 서버가 한 번만 씌움)."""
+        start = perf_counter()
+        response = requests.post(
+            f"{self._openai_base}/chat/completions",
+            headers={"Authorization": f"Bearer {self._openai_key}"},
+            json={
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0,
+                "max_tokens": max_tokens,
+                "seed": 0,
+            },
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        return response.json(), _elapsed(start)
+
+    def _preload(self) -> float:
+        if self._backend != "openai":
+            return super()._preload()
+        # 서버리스 워커를 깨운다. 콜드 스타트면 모델 로딩까지 수십 초~몇 분 걸릴 수 있다.
+        _, seconds = self._openai_chat("Hi", 1, OPENAI_WARMUP_TIMEOUT)
+        return seconds
 
     def _generate(self, question: str, context: list[Chunk]) -> tuple[str, dict[str, float | int]]:
         prompt = PAPER_RAG_PROMPT.format(
             question=question, context="\n".join(chunk.text for chunk in context),
         )
+        if self._backend == "openai":
+            payload, seconds = self._openai_chat(prompt, self._num_predict, OPENAI_TIMEOUT)
+            try:
+                choice = payload["choices"][0]
+                answer = _final_answer(choice["message"]["content"])
+            except (KeyError, IndexError, TypeError):
+                raise _GenerationError("LLM 엔드포인트에서 완성된 답변을 받지 못했습니다.") from None
+            usage = payload.get("usage") or {}
+            metrics = {"request_seconds": seconds}
+            if isinstance(usage.get("prompt_tokens"), int):
+                metrics["prompt_tokens"] = usage["prompt_tokens"]
+            if isinstance(usage.get("completion_tokens"), int):
+                metrics["generated_tokens"] = usage["completion_tokens"]
+            if not answer:
+                raise _GenerationError("LLM 엔드포인트에서 완성된 답변을 받지 못했습니다.", metrics)
+            if choice.get("finish_reason") == "length":
+                metrics["truncated"] = 1
+            return answer, metrics
         payload = self._request_generation(
             prompt, options={"temperature": 0, "num_predict": self._num_predict},
         )
