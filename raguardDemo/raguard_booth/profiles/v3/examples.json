@@ -1,0 +1,42 @@
+[
+  {
+    "id": "v3-q06",
+    "kind": "live",
+    "label": "장비 지급·회수",
+    "question": "What request and verification steps must employees follow under the company equipment issuance and return procedure?",
+    "filename": "B3_장비지급회수절차.txt",
+    "qid": "Q06"
+  },
+  {
+    "id": "v3-q04",
+    "kind": "live",
+    "label": "연차·재택근무",
+    "question": "Under the annual leave and remote work application rules, how does the process proceed from application submission to approval?",
+    "filename": "B1_연차재택근무신청규정.txt",
+    "qid": "Q04"
+  },
+  {
+    "id": "v3-q05",
+    "kind": "live",
+    "label": "출장 법인카드",
+    "question": "How do the request, settlement, and approval procedures work under the business travel corporate card usage rules?",
+    "filename": "B2_출장법인카드사용규정.txt",
+    "qid": "Q05"
+  },
+  {
+    "id": "v3-q21",
+    "kind": "live",
+    "label": "외부 교육 신청",
+    "question": "Under the external training application procedure, what submission and approval steps must employees follow?",
+    "filename": "B5_외부교육신청절차.txt",
+    "qid": "Q21"
+  },
+  {
+    "id": "v3-review",
+    "kind": "v3-review",
+    "label": "장비 질문 · 검토 경로",
+    "question": "What request and verification steps must employees follow under the company equipment issuance and return procedure?",
+    "filename": "B3_장비지급회수절차.txt",
+    "qid": "Q06"
+  }
+]

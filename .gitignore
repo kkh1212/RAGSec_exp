@@ -1,0 +1,16 @@
+
+# RAGuard
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+venv/
+raguardDemo/rag_transfer/data/
+*.log
+*.faiss
+*.index
+*.npy
+*.pt
+*.safetensors

@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+experiment_c_data/
+.experiment-c.*/
+.experiment-c-backup.*/
