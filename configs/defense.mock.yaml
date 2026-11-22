@@ -1,0 +1,15 @@
+{
+  "search_version": "v1",
+  "max_additional_generation_attempts": 20,
+  "max_refinement_attempts": 8,
+  "max_candidates_to_refine": 2,
+  "max_grounding_verifications": 2,
+  "max_masked_documents": 1,
+  "concurrency": 1,
+  "allow_live": false,
+  "min_observer_confidence": 0.8,
+  "max_segment_chars": 240,
+  "deletion_control": true,
+  "require_deletion_consistency": false,
+  "max_execution_retries": 0
+}

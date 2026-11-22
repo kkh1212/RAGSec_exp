@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-defense"
+version = "0.1.0"
+description = "Independent, budgeted RAG refusal-repair experiments"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+cpu-test = ["numpy>=1.26,<3", "scikit-learn>=1.4,<2"]
+ml = ["sentence-transformers>=3,<6", "scikit-learn>=1.4,<2", "numpy>=1.26,<3"]
+
+[project.scripts]
+rag-defense = "rag_defense.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--basetemp=.tmp/pytest"
+cache_dir = ".cache/pytest"

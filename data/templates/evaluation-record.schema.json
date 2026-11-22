@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "External evaluation JSONL row (no real records bundled)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "record_id", "query_id", "request", "data_kind"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "record_id": {"type": "string", "minLength": 1},
+    "query_id": {"type": "string", "minLength": 1},
+    "data_kind": {"enum": ["copied_real", "synthetic"]},
+    "replay_file": {"type": ["string", "null"]},
+    "request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["request_id", "query", "documents", "initial_response", "generation_fingerprint", "query_policy"],
+      "properties": {
+        "request_id": {"type": "string"}, "query": {"type": "string"},
+        "generation_fingerprint": {"type": "string"}, "query_policy": {"enum": ["ALLOW", "DENY", "UNKNOWN"]},
+        "documents": {"type": "array", "items": {"$ref": "#/$defs/document"}},
+        "initial_response": {"$ref": "#/$defs/generation"}
+      }
+    },
+    "evaluation": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "attack_type": {"enum": [null, "Jamming Instruction Injection", "Jamming Oracle Generated", "Jamming BBO", "MutedRAG", "TabooRAG"]},
+        "attack_doc_ids": {"type": "array", "items": {"type": "string"}},
+        "attack_spans": {"type": "array", "items": {"$ref": "#/$defs/span"}},
+        "reference_answer": {"type": "string"},
+        "initial_response_label": {"enum": ["ANSWER", "REFUSAL", "OTHER", "UNCERTAIN"]},
+        "clean": {"type": "boolean"}, "legitimate_refusal": {"type": "boolean"}, "metadata": {"type": "object"}
+      }
+    }
+  },
+  "$defs": {
+    "document": {
+      "type": "object", "additionalProperties": false, "required": ["doc_id", "title", "text", "rank"],
+      "properties": {"doc_id": {"type": "string"}, "title": {"type": "string"}, "text": {"type": "string"},
+                     "rank": {"type": "integer", "minimum": 0}, "retrieval_score": {"type": ["number", "null"]}}
+    },
+    "generation": {
+      "type": "object", "additionalProperties": false, "required": ["text", "execution_status", "generation_fingerprint"],
+      "properties": {
+        "text": {"type": "string"}, "generation_fingerprint": {"type": "string"},
+        "execution_status": {"enum": ["OK", "PROVIDER_BLOCK", "RATE_LIMIT", "AUTH_ERROR", "TIMEOUT", "INPUT_TOO_LONG", "INCOMPLETE", "OTHER_API_ERROR", "API_ERROR", "EMPTY_RESPONSE", "OUTPUT_TRUNCATED", "REPLAY_MISS", "CONFIG_MISMATCH"]},
+        "latency_ms": {"type": "number", "minimum": 0},
+        "usage": {"type": "object", "additionalProperties": false, "properties": {
+          "input_tokens": {"type": "integer", "minimum": 0}, "output_tokens": {"type": "integer", "minimum": 0},
+          "provider_attempts": {"type": "integer", "minimum": 0, "maximum": 1}}}
+      }
+    },
+    "span": {
+      "type": "object", "additionalProperties": false, "required": ["doc_id", "field", "start_char", "end_char"],
+      "properties": {"doc_id": {"type": "string"}, "field": {"enum": ["title", "text"]},
+        "start_char": {"type": "integer", "minimum": 0}, "end_char": {"type": "integer", "minimum": 1}}
+    }
+  }
+}
