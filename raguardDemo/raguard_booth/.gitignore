@@ -5,3 +5,7 @@ __pycache__/
 experiment_c_data/
 .experiment-c.*/
 .experiment-c-backup.*/
+
+# eval_detector outputs
+detector_eval*.csv
+detector_eval*_summary.json

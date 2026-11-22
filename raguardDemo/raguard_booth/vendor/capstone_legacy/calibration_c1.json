@@ -1,0 +1,59 @@
+{
+  "n_pairs": 600,
+  "legacy_calib": {
+    "anchor_min": 0.3044005799293518,
+    "gap_med": 0.29496772587299347,
+    "gap_high": 0.37902233302593225,
+    "break_med": 0.30358689013778145,
+    "break_high": 0.42839472404356616,
+    "isolation_med": 0.7602812916040421,
+    "isolation_high": 0.8608615603297947,
+    "prototype_med": 0.2972197711467743,
+    "prototype_high": 0.40165427327156067,
+    "redirect_med": 0.2498711109161377,
+    "redirect_high": 0.3340262830257414,
+    "refusal_med": 0.2658908307552338,
+    "refusal_high": 0.36089521348476394,
+    "calibration_note": "normal p90/p98; n=600"
+  },
+  "legacy_calib_clean_flag_rate_default_thr": {
+    "k": 221,
+    "n": 600,
+    "rate": 0.36833333333333335,
+    "ci95": [
+      0.3307,
+      0.4077
+    ]
+  },
+  "legacy_calib_heldout": {
+    "anchor_min": 0.3044006216526032,
+    "gap_med": 0.29496772587299347,
+    "gap_high": 0.3790223024785518,
+    "break_med": 0.30358688209672,
+    "break_high": 0.42839465542643695,
+    "isolation_med": 0.760281290113926,
+    "isolation_high": 0.8608616031706331,
+    "prototype_med": 0.2703881710767746,
+    "prototype_high": 0.36089518591761566,
+    "redirect_med": 0.20040115118026738,
+    "redirect_high": 0.28,
+    "refusal_med": 0.2658908307552338,
+    "refusal_high": 0.36089518591761566,
+    "calibration_note": "normal p90/p98; n=600"
+  },
+  "legacy_calib_heldout_clean_flag_rate_default_thr": {
+    "k": 204,
+    "n": 600,
+    "rate": 0.34,
+    "ci95": [
+      0.3032,
+      0.3788
+    ]
+  },
+  "improved_clean_score_p50_p95_p99": [
+    0.1243,
+    0.2595,
+    0.328
+  ],
+  "improved_threshold_calib": 0.35
+}

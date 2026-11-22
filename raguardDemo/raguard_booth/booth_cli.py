@@ -34,6 +34,7 @@ EDIT_ACTIONS = {
     "sanitized": "문장 정제",
     "drop": "청크 제외",
     "dropped": "청크 제외",
+    "backfill": "재검색 보충",
     "keep": "청크 유지",
 }
 OLLAMA_DURATION_LABELS = {

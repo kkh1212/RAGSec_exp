@@ -140,12 +140,13 @@ class TransferIndex:
         if self._index.ntotal != len(self._ids):
             raise ValueError("인덱스의 벡터 수가 문서 ID 매핑과 맞지 않습니다.")
 
-    def search(self, qid: str) -> dict:
+    def search(self, qid: str, top_k: int = TOP_K) -> dict:
+        """top_k: 기본 5. 부스 ON 백필은 6위 이후까지 받아간다 (미니 인덱스에 질의별 상위 100개가 있어 정확)."""
         if qid not in self._questions:
             raise ValueError("등록되지 않은 질문 ID입니다. queries.jsonl을 확인해 주세요.")
         row, question = self._questions[qid]
         query = _as_float32(self._query_vecs[row:row + 1], "query_vecs.npy")
-        scores, positions = self._index.search(query, TOP_K)
+        scores, positions = self._index.search(query, top_k)
         hits = []
         for rank, (score, position) in enumerate(zip(scores[0], positions[0]), 1):
             if position < 0:
@@ -163,7 +164,7 @@ class TransferIndex:
             "question": question,
             "mode": "expanded" if self._expanded else "baseline",
             "vector_count": self._index.ntotal,
-            "top_k": TOP_K,
+            "top_k": top_k,
             "top5": hits,
         }
 

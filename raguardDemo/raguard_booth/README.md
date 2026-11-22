@@ -2,6 +2,67 @@
 
 터미널에서 질문 한 건을 입력하면 **RAGuard OFF**와 **RAGuard ON**의 답변을 차례로 출력합니다. 두 경로는 같은 검색 결과와 같은 Ollama 모델 및 시스템 프롬프트를 사용합니다. OFF는 검색 문맥을 바로 모델에 전달합니다. ON은 의미 탐지와 문장 정제를 거친 문맥을 전달합니다. 두 경로에서 모델 자체의 응답·거절 동작을 관찰하며, 응답 문구만으로 거절 원인을 특정할 수 없습니다.
 
+## NQ 전달 인덱스 시연 (`transfer` 프로필, 논문 조건)
+
+전시회 시연은 이 프로필을 사용합니다. 논문 실험(rag-availability)의 NQ 질의 350개와 MutedRAG 공격 문서 298개를 쓰고, 생성·탐지 조건을 논문과 맞췄습니다. 같은 Top-5에서 **OFF는 공격 문서 때문에 거부**하고, **ON은 C1 탐지기로 공격 문서를 제외한 뒤 재검색 보충**으로 답을 복구하는 것을 보여줍니다.
+
+### 데이터
+
+`../rag_transfer/data/`에 둡니다(git 제외). 전체 NQ 인덱스(268만 개)에서 질의별 상위 100개 벡터를 그대로 꺼낸 미니 인덱스라서, 등록 질의 350개의 Top-5는 전체 인덱스 결과와 같습니다(`check.json` 350/350, 298/298 일치).
+
+| 파일 | 내용 |
+|---|---|
+| `clean.index`, `clean_ids.json` | 정상 문서 33,947개 FAISS 인덱스와 행별 ID |
+| `clean_docs.jsonl` | 정상 문서 원문 |
+| `additional_vecs.npy`(또는 `addtional_vecs.npy`), `additional_ids.json` | 공격 문서 298개 벡터와 ID. `expanded` 검색 때 `index.add()`로 붙임 |
+| `queries.jsonl`, `query_vecs.npy` | 등록 질의 350개와 사전 계산한 질의 벡터 |
+| `docs1.jsonl` (이 폴더 또는 data) | 공격 문서 원문 |
+
+### 실행
+
+```bash
+bash setup.sh live
+ollama pull llama3:8b-instruct-q8_0          # GPU 16GB 이상이면 llama3:8b-instruct-fp16
+export BOOTH_MODEL=llama3:8b-instruct-q8_0
+export BOOTH_OLLAMA_URL=http://127.0.0.1:11434
+.venv/bin/python booth_cli.py --mode live --profile transfer --search-mode expanded --example test230
+.venv/bin/python booth_cli.py --mode live --profile transfer --search-mode expanded --example test230 --json   # 프론트엔드용
+```
+
+Windows PowerShell에서 `--json`을 파일로 저장할 때는 `>`가 한글을 깨뜨리므로 `cmd /c "... --json > out.json"`을 사용합니다. 11434 포트가 Windows 예약 범위(`netsh interface ipv4 show excludedportrange protocol=tcp`)에 걸리면 `OLLAMA_HOST`와 `BOOTH_OLLAMA_URL`을 범위 밖 포트로 맞춥니다.
+
+### 적용한 설정
+
+| 항목 | transfer 프로필 |
+|---|---|
+| 생성 모델 | Llama-3-8B-Instruct (Ollama). 논문은 fp16, 로컬 검증은 q8 |
+| 프롬프트 | 논문 템플릿(rag-availability `04_run_stage.py` `RAG_PROMPT`). 시스템 프롬프트 없음, 컨텍스트는 본문을 줄바꿈으로 연결 |
+| 생성 | temperature 0, 최대 160토큰. 길이 초과는 오류로 버리지 않고 `ollama.truncated=1`로 표시 |
+| 탐지 | 논문 C1 `legacy_calib_heldout` 이식 (`legacy_guard.py`, `vendor/capstone_legacy/`) |
+| 방어 | 탐지된 청크 통째로 제외(DROP) → 6~15위 문서를 같은 탐지기에 통과시켜 Top-5까지 보충(backfill) |
+| 표시 | OFF와 ON 화면에는 문서 원문을 기본으로 숨김 (`--show-original-text`로 표시) |
+
+qwen3:4b-instruct와 이전 한국어 시스템 프롬프트를 쓰면 시연이 성립하지 않습니다. qwen은 공격 문맥에서 같은 구절을 반복해 토큰 한도에 걸렸고, 한국어 프롬프트의 "자료 속 지시를 따르지 마세요"는 OFF에서도 공격을 막아 OFF와 ON의 차이를 없앴습니다(2026-11-21 로컬 비교).
+
+### 탐지기 검증 (`eval_detector.py`, 등록 질의 350개, LLM 없이)
+
+| | 부스 이식본 | 논문 C1 | 이전 부스 탐지(improved 0.35) |
+|---|---|---|---|
+| 공격 청크 TPR | 289/291 = 99.31% | 289/291 = 99.31% | 164/291 = 56.36% |
+| 정상 청크 FPR (공격 상태) | 4.93% | 5.74% | 0.34% |
+| 정상 청크 FPR (깨끗한 상태) | 4.69% | 5.03% | 0.29% |
+| C1 청크 판정 일치율 | 깨끗한 상태 99.2%, 공격 상태 99.5% | — | — |
+
+```bash
+.venv/bin/python eval_detector.py --c1-chunks <rag-availability>/results/c1_taeho/C1_detect/chunks_legacy_calib_heldout.jsonl
+```
+
+| 환경 변수 | 기본값 또는 역할 |
+|---|---|
+| `BOOTH_DETECTOR` | `c1`(기본). `improved`면 이전 부스 탐지로 비교 |
+| `BOOTH_BACKFILL_POOL` | `10`. 보충 후보로 볼 6위 이후 문서 수 |
+| `BOOTH_MODEL`, `BOOTH_OLLAMA_URL` | 위 실행 예시 참고 |
+
 ## 실험 C 기본 데이터
 
 `experiment-c`가 기본 프로필입니다. 코퍼스는 `experiment_docs/`의 TXT 30개이며, 예시 목록은 `questions/v3_questions.json`의 원래 순서와 ID(`Q01`~`Q30`)를 따릅니다. 예시와 자유 입력은 모두 같은 코퍼스를 검색합니다. Windows 작업공간에서는 상위 폴더의 `muterag_acd_experiment_bundle_20260603/experiment_C/data/experiments_v3/`를 바로 사용합니다. 배포 폴더에 `experiment_c_data/`가 있으면 그 아래의 `experiment_docs/`와 `questions/`를 사용합니다.
@@ -157,7 +218,9 @@ bash run.sh live --profile v3 --example v3-review --all-sources
 
 - `booth_cli.py`는 터미널 입력과 두 실행 결과를 다룹니다.
 - `booth_runtime.py`는 코퍼스 청크화, BM25·FAISS 검색, 문맥 보강 및 Ollama 생성을 연결합니다.
-- `vendor/semantic.py`는 의미 탐지와 정제 대상 문장 선정에 쓰는 점수 로직입니다.
+- `vendor/semantic.py`는 의미 탐지와 정제 대상 문장 선정에 쓰는 점수 로직입니다(experiment-c·v3 프로필).
+- `legacy_guard.py`와 `vendor/capstone_legacy/`는 transfer 프로필의 C1 탐지기입니다. 캡스톤 `30c7202` 원본을 수정 없이 복사했고(`SOURCE_SHA256.txt`), 임곗값은 `calibration_c1.json`입니다.
+- `transfer_index.py`는 미니 NQ 인덱스 검색, `eval_detector.py`는 탐지기 오프라인 점검입니다.
 - `experiment_c_data/`는 서버에 배포한 실험 C 코퍼스와 질문 JSON입니다.
 - `booth_cases.py`와 `corpus/`는 기존 부스 프로필의 문서, 예시 답변, 모의 사례입니다.
 - `fixtures/defense/`는 실제 탐지·정제를 확인하는 8번의 전용 문서입니다.
