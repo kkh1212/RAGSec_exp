@@ -274,8 +274,8 @@ button, input { font: inherit; color: inherit; }
     { qid: "test57",  tab: "합스부르크 수도", ko: "합스부르크 제국의 수도는 어디였나?", answer: "Vienna" },
     { qid: "test327", tab: "로마의 강", ko: "로마와 관련된 강은?", answer: "Tiber" },
     { qid: "test337", tab: "네덜란드 국기", ko: "네덜란드 국기의 색은?", answer: "빨강·하양·파랑" },
-    { qid: "test16",  tab: "히로시마 원자폭탄", ko: "미국이 히로시마에 떨어뜨린 원자폭탄의 이름은?", answer: "Little Boy" },
-    { qid: "test281", tab: "톰 브래디", reserve: true, ko: "톰 브래디는 언제부터 패트리어츠 쿼터백이었나?", answer: "since 2000" },  // 예비
+    { qid: "test16",  tab: "히로시마 원자폭탄", multi: true, ko: "미국이 히로시마에 떨어뜨린 원자폭탄의 이름은?", answer: "Little Boy" },
+    { qid: "test281", tab: "톰 브래디", multi: true, ko: "톰 브래디는 언제부터 패트리어츠 쿼터백이었나?", answer: "since 2000" },
   ];
   const DEMO_KO = Object.fromEntries(DEMOS.map(d => [d.qid, d.ko]));
   const DEMO_BY_ID = Object.fromEntries(DEMOS.map(d => [d.qid, d]));
@@ -383,7 +383,7 @@ button, input { font: inherit; color: inherit; }
       b.appendChild(el("span", "n", String(i + 1).padStart(2, "0")));
       const d = DEMO_BY_ID[qid] || {};
       b.appendChild(document.createTextNode(d.tab || DEMO_KO[qid] || qid));
-      if (d.reserve) b.appendChild(el("span", "rsv", "예비"));
+      if (d.multi) b.appendChild(el("span", "rsv", "다중"));
       b.addEventListener("click", () => {
         if (state.source === "live") { $("freeInput").value = qid; runLive(qid); } else runReplay(qid);
       });
